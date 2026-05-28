@@ -1,0 +1,33 @@
+# Go
+/edge/agent
+/lambda/dist/
+*.test
+*.out
+
+# Node / frontend
+node_modules/
+/frontend/dist/
+.vite/
+
+# Terraform
+.terraform/
+*.tfstate
+*.tfstate.*
+crash.log
+*.tfvars
+!*.tfvars.example
+.terraform.lock.hcl
+
+# AWS / 秘密情報（絶対にコミットしない）
+*.pem
+*.key
+*-certificate.pem.crt
+*-private.pem.key
+AmazonRootCA*.pem
+.env
+.env.local
+.aws/
+
+# OS / editor
+.DS_Store
+*.swp

@@ -1,0 +1,10 @@
+# cp terraform.tfvars.example terraform.tfvars して必要に応じて編集
+project   = "home-device"
+region    = "ap-northeast-1"
+device_id = "kitchen-1"
+
+# 本番はフロントエンドの配信オリジンを指定（例: "https://d111111abcdef8.cloudfront.net"）
+allowed_origin = "*"
+
+s3_key_prefix   = "images"
+url_ttl_seconds = 300
