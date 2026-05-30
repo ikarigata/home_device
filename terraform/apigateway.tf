@@ -3,7 +3,7 @@ resource "aws_apigatewayv2_api" "main" {
   protocol_type = "HTTP"
 
   cors_configuration {
-    allow_origins = [var.allowed_origin]
+    allow_origins = local.allowed_origins
     allow_methods = ["GET", "POST", "OPTIONS"]
     allow_headers = ["authorization", "content-type"]
     max_age       = 3600

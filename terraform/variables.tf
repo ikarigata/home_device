@@ -16,10 +16,10 @@ variable "device_id" {
   default     = "kitchen-1"
 }
 
-variable "allowed_origin" {
-  description = "CORS で許可するフロントエンドのオリジン（本番は https://... を指定）"
-  type        = string
-  default     = "*"
+variable "extra_allowed_origins" {
+  description = "CloudFront に加えて CORS を許可するオリジン（例: 開発用 [\"http://localhost:5173\"]）"
+  type        = list(string)
+  default     = []
 }
 
 variable "s3_key_prefix" {

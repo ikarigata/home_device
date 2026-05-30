@@ -3,8 +3,9 @@ project   = "home-device"
 region    = "ap-northeast-1"
 device_id = "kitchen-1"
 
-# 本番はフロントエンドの配信オリジンを指定（例: "https://d111111abcdef8.cloudfront.net"）
-allowed_origin = "*"
+# CloudFront はこの terraform で構築するので CORS は自動で wire される。
+# ローカル開発（Vite dev server）からも API を叩きたいなら追加する：
+# extra_allowed_origins = ["http://localhost:5173"]
 
 s3_key_prefix   = "images"
 url_ttl_seconds = 300

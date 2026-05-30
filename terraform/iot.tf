@@ -19,7 +19,7 @@ resource "aws_iot_thing_principal_attachment" "device" {
 
 # 最小権限の MQTT ポリシー:
 # - 自分の clientId でのみ接続
-# - 撮影トピックの publish / subscribe / receive のみ
+# - 撮影トピックの subscribe / receive のみ（publish は Lambda 側が IAM で行う）
 # - S3 用一時クレデンシャル取得(credentials provider)のための AssumeRoleWithCertificate
 resource "aws_iot_policy" "device" {
   name = "${var.project}-device-policy"
@@ -34,7 +34,7 @@ resource "aws_iot_policy" "device" {
       },
       {
         Effect   = "Allow"
-        Action   = ["iot:Publish", "iot:Receive"]
+        Action   = "iot:Receive"
         Resource = "${local.iot_arn_prefix}:topic/${local.capture_topic}"
       },
       {

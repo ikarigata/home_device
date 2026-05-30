@@ -34,7 +34,7 @@ resource "aws_lambda_function" "trigger" {
     variables = {
       DEVICE_ID      = var.device_id
       IOT_ENDPOINT   = data.aws_iot_endpoint.ats.endpoint_address
-      ALLOWED_ORIGIN = var.allowed_origin
+      ALLOWED_ORIGIN = local.frontend_origin
     }
   }
 
@@ -57,7 +57,7 @@ resource "aws_lambda_function" "image" {
       S3_BUCKET       = aws_s3_bucket.images.id
       S3_KEY_PREFIX   = var.s3_key_prefix
       URL_TTL_SECONDS = tostring(var.url_ttl_seconds)
-      ALLOWED_ORIGIN  = var.allowed_origin
+      ALLOWED_ORIGIN  = local.frontend_origin
     }
   }
 
@@ -79,7 +79,7 @@ resource "aws_lambda_function" "images" {
       DEVICE_ID      = var.device_id
       S3_BUCKET      = aws_s3_bucket.images.id
       S3_KEY_PREFIX  = var.s3_key_prefix
-      ALLOWED_ORIGIN = var.allowed_origin
+      ALLOWED_ORIGIN = local.frontend_origin
     }
   }
 

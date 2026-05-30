@@ -17,6 +17,21 @@ output "bucket" {
   value = aws_s3_bucket.images.id
 }
 
+output "frontend_bucket" {
+  description = "SPA をアップロードする S3 バケット（aws s3 sync frontend/dist s3://<bucket>/）"
+  value       = aws_s3_bucket.frontend.id
+}
+
+output "frontend_url" {
+  description = "ブラウザでアクセスする SPA の URL"
+  value       = local.frontend_origin
+}
+
+output "cloudfront_distribution_id" {
+  description = "デプロイ後のキャッシュ無効化に使う（aws cloudfront create-invalidation --distribution-id ...）"
+  value       = aws_cloudfront_distribution.frontend.id
+}
+
 output "iot_endpoint" {
   description = "ラズパイ / Lambda が接続する IoT データエンドポイント"
   value       = data.aws_iot_endpoint.ats.endpoint_address
