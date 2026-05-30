@@ -121,4 +121,4 @@ S3: 非公開バケット（Public Access Block 全有効）。キー例 images/
 | frontend 開発 | `cd frontend && npm install && npm run dev` |
 | frontend ビルド | `cd frontend && npm run build` |
 
-> 現状はAWSアカウントのみ準備済み。ラズパイ実機・カメラ・ドメインは未手配のため、`edge` は `CAMERA=mock` で実機なしでもパイプライン全体を検証できる。
+> 現状の準備状況: AWS アカウント / ラズパイ実機 / カメラ（Logicool C270nd）の手配・接続まで完了済み（`fswebcam` での撮影動作も確認済み）。独自ドメインのみ未手配。AWS 側のリソース構築（terraform apply・Lambda デプロイ・IoT デバイス証明書発行）はこれから。開発マシン上では `edge` を `CAMERA=mock` で起動して擬似動作を確認することも引き続き可能。
