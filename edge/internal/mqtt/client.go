@@ -5,6 +5,7 @@ import (
 	"crypto/tls"
 	"crypto/x509"
 	"fmt"
+	"log"
 	"os"
 
 	paho "github.com/eclipse/paho.mqtt.golang"
@@ -17,9 +18,14 @@ type Params struct {
 	CertFile   string
 	KeyFile    string
 	CACertFile string
+
+	Topic     string              // 購読する撮影トリガトピック
+	QoS       byte                // 購読 QoS
+	OnMessage paho.MessageHandler // トリガ受信時に呼ばれるハンドラ
 }
 
 // Connect は相互TLSで IoT Core に接続したクライアントを返す。
+// 購読は OnConnect ハンドラ内で行うため、自動再接続のたびに購読が復元される。
 func Connect(p Params) (paho.Client, error) {
 	tlsCfg, err := newTLSConfig(p)
 	if err != nil {
@@ -30,7 +36,22 @@ func Connect(p Params) (paho.Client, error) {
 		AddBroker(fmt.Sprintf("ssl://%s:8883", p.Endpoint)).
 		SetClientID(p.ClientID).
 		SetTLSConfig(tlsCfg).
-		SetAutoReconnect(true)
+		SetAutoReconnect(true).
+		// CleanSession=true: 切断中のトリガはキューせず破棄する（オンデマンド撮影では
+		// 過去のボタン押下が再接続時に蘇るのは望ましくない）。その代わり再接続後は
+		// 購読が失われるため、下の OnConnect で毎回購読し直す。
+		SetCleanSession(true).
+		SetConnectionLostHandler(func(_ paho.Client, err error) {
+			log.Printf("mqtt connection lost: %v", err)
+		}).
+		SetOnConnectHandler(func(c paho.Client) {
+			token := c.Subscribe(p.Topic, p.QoS, p.OnMessage)
+			if token.Wait(); token.Error() != nil {
+				log.Printf("subscribe %s failed: %v", p.Topic, token.Error())
+				return
+			}
+			log.Printf("subscribed to %s", p.Topic)
+		})
 
 	client := paho.NewClient(opts)
 	if token := client.Connect(); token.Wait() && token.Error() != nil {

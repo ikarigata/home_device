@@ -23,20 +23,21 @@ resource "aws_s3_bucket_server_side_encryption_configuration" "images" {
   }
 }
 
-# 古い画像を自動削除して容量を抑える（latest.jpg は常に上書きされる想定だが念のため）。
+# 履歴画像のみ60日で自動削除（latest.jpg は pointer なので対象外。
+# 撮影が長期間止まっても「最後に撮った絵」だけは残しておく意図）。
 resource "aws_s3_bucket_lifecycle_configuration" "images" {
   bucket = aws_s3_bucket.images.id
 
   rule {
-    id     = "expire-old-images"
+    id     = "expire-history"
     status = "Enabled"
 
     filter {
-      prefix = "${var.s3_key_prefix}/"
+      prefix = local.history_prefix
     }
 
     expiration {
-      days = 30
+      days = 60
     }
   }
 }

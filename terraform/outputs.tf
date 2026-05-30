@@ -22,9 +22,19 @@ output "iot_endpoint" {
   value       = data.aws_iot_endpoint.ats.endpoint_address
 }
 
+output "iot_cred_endpoint" {
+  description = "ラズパイが一時クレデンシャルを取得する IoT credentials provider エンドポイント"
+  value       = data.aws_iot_endpoint.creds.endpoint_address
+}
+
 output "iot_role_alias" {
   description = "デバイスが S3 用一時クレデンシャルを取得する role alias"
   value       = aws_iot_role_alias.device.alias
+}
+
+output "device_thing_name" {
+  description = "デバイスの IoT Thing 名（IOT_THING_NAME に設定）"
+  value       = aws_iot_thing.device.name
 }
 
 # ラズパイに配置するデバイス証明書一式（state に平文保存されるため取り扱い注意）。

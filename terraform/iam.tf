@@ -76,7 +76,7 @@ resource "aws_iam_role_policy" "trigger_iot" {
   })
 }
 
-# image Lambda: 署名対象オブジェクトの GetObject のみ（署名付き URL は署名者の権限を継承する）
+# image Lambda: latest と履歴の GetObject（署名付き URL は署名者の権限を継承する）
 resource "aws_iam_role" "lambda_image" {
   name               = "${var.project}-lambda-image"
   assume_role_policy = data.aws_iam_policy_document.lambda_assume.json
@@ -96,7 +96,37 @@ resource "aws_iam_role_policy" "image_s3" {
     Statement = [{
       Effect   = "Allow"
       Action   = "s3:GetObject"
-      Resource = "${aws_s3_bucket.images.arn}/${local.object_key}"
+      Resource = "${aws_s3_bucket.images.arn}/${var.s3_key_prefix}/${var.device_id}/*"
+    }]
+  })
+}
+
+# images Lambda: 履歴一覧のための ListBucket（自デバイスの history/ プレフィックス限定）
+resource "aws_iam_role" "lambda_images" {
+  name               = "${var.project}-lambda-images"
+  assume_role_policy = data.aws_iam_policy_document.lambda_assume.json
+}
+
+resource "aws_iam_role_policy_attachment" "images_logs" {
+  role       = aws_iam_role.lambda_images.name
+  policy_arn = "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole"
+}
+
+resource "aws_iam_role_policy" "images_list" {
+  name = "s3-list-history"
+  role = aws_iam_role.lambda_images.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [{
+      Effect   = "Allow"
+      Action   = "s3:ListBucket"
+      Resource = aws_s3_bucket.images.arn
+      Condition = {
+        StringLike = {
+          "s3:prefix" = ["${var.s3_key_prefix}/${var.device_id}/history/*"]
+        }
+      }
     }]
   })
 }

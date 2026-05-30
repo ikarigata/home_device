@@ -16,8 +16,14 @@ type Uploader struct {
 	bucket string
 }
 
-func New(ctx context.Context, region, bucket string) (*Uploader, error) {
-	cfg, err := awsconfig.LoadDefaultConfig(ctx, awsconfig.WithRegion(region))
+// New は S3 アップローダを生成する。creds が非 nil の場合はそのクレデンシャルプロバイダを
+// 使用し（IoT credentials provider 等）、nil の場合は AWS SDK 標準のチェーンにフォールバックする。
+func New(ctx context.Context, region, bucket string, creds aws.CredentialsProvider) (*Uploader, error) {
+	opts := []func(*awsconfig.LoadOptions) error{awsconfig.WithRegion(region)}
+	if creds != nil {
+		opts = append(opts, awsconfig.WithCredentialsProvider(creds))
+	}
+	cfg, err := awsconfig.LoadDefaultConfig(ctx, opts...)
 	if err != nil {
 		return nil, fmt.Errorf("load aws config: %w", err)
 	}

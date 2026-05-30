@@ -1,0 +1,41 @@
+[Unit]
+Description=home_device edge agent (MQTT trigger -> capture -> S3)
+Documentation=https://github.com/ikarigata/home_device
+# ネットワークと時刻同期(NTP)が整ってから起動する。
+# 時刻がずれていると TLS ハンドシェイクや SigV4 署名、クレデンシャル有効期限の判定が失敗するため必須。
+After=network-online.target time-sync.target
+Wants=network-online.target
+# 再起動ループの抑制（5分間に5回失敗したら停止）
+StartLimitIntervalSec=300
+StartLimitBurst=5
+
+[Service]
+Type=simple
+# 専用ユーザーで実行。カメラ(/dev/video0)アクセスのため video グループを付与する。
+User=home_device
+Group=home_device
+SupplementaryGroups=video
+
+ExecStart=/usr/local/bin/home_device-agent
+# S3_BUCKET / IOT_* などの環境変数（edge/.env.example の中身）を置く。
+EnvironmentFile=/etc/home_device/agent.env
+
+# 落ちても自動再起動
+Restart=always
+RestartSec=5
+
+# セキュリティ・ハードニング（最小権限）。S3 認証は IoT credentials provider 前提。
+# ~/.aws の標準クレデンシャルにフォールバックする場合は ProtectHome を外すこと。
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+PrivateTmp=true
+ProtectControlGroups=true
+ProtectKernelTunables=true
+ProtectKernelModules=true
+RestrictNamespaces=true
+# 証明書・設定は読み取り専用で許可
+ReadOnlyPaths=/etc/home_device
+
+[Install]
+WantedBy=multi-user.target

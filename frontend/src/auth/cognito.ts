@@ -4,14 +4,18 @@ import {
   AuthenticationDetails,
   type CognitoUserSession,
 } from "amazon-cognito-identity-js";
+import { config } from "../config";
 
-const userPool = new CognitoUserPool({
-  UserPoolId: import.meta.env.VITE_USER_POOL_ID,
-  ClientId: import.meta.env.VITE_CLIENT_ID,
-});
+let pool: CognitoUserPool | null = null;
+function userPool(): CognitoUserPool {
+  if (!pool) {
+    pool = new CognitoUserPool({ UserPoolId: config.userPoolId, ClientId: config.clientId });
+  }
+  return pool;
+}
 
 export function signIn(username: string, password: string): Promise<void> {
-  const user = new CognitoUser({ Username: username, Pool: userPool });
+  const user = new CognitoUser({ Username: username, Pool: userPool() });
   const details = new AuthenticationDetails({ Username: username, Password: password });
   return new Promise((resolve, reject) => {
     user.authenticateUser(details, {
@@ -25,7 +29,7 @@ export function signIn(username: string, password: string): Promise<void> {
 
 // API Gateway の Cognito JWT オーソライザーは aud(=ClientId) を持つ ID トークンを検証する。
 export function getIdToken(): Promise<string | null> {
-  const user = userPool.getCurrentUser();
+  const user = userPool().getCurrentUser();
   if (!user) return Promise.resolve(null);
   return new Promise((resolve) => {
     user.getSession((err: Error | null, session: CognitoUserSession | null) => {
@@ -39,5 +43,5 @@ export function getIdToken(): Promise<string | null> {
 }
 
 export function signOut(): void {
-  userPool.getCurrentUser()?.signOut();
+  userPool().getCurrentUser()?.signOut();
 }
