@@ -30,49 +30,48 @@ GOOS=linux GOARCH=arm GOARM=7 go build -o agent ./cmd/agent
 
 ## S3 への認証（IoT credentials provider）
 
-ラズパイには長期 IAM アクセスキーを置かず、**デバイス証明書を一時 AWS クレデンシャルに交換**して S3 にアップロードする。`IOT_CRED_ENDPOINT` と `IOT_ROLE_ALIAS` を設定すると有効化され、未設定なら AWS SDK 標準のクレデンシャルチェーン（`~/.aws` 等）にフォールバックする（ローカル開発時はこちら）。
+ラズパイには長期 IAM アクセスキーを置かず、**デバイス証明書を一時 AWS クレデンシャルに交換**して S3 にアップロードする。`bootstrap-edge.sh` が `IOT_CRED_ENDPOINT` / `IOT_ROLE_ALIAS` / `IOT_THING_NAME` を `agent.env` に自動で書き込む。
 
-```sh
-# terraform apply 後に取得して .env / systemd EnvironmentFile に設定
-terraform output -raw iot_cred_endpoint   # → IOT_CRED_ENDPOINT
-terraform output -raw iot_role_alias      # → IOT_ROLE_ALIAS
-terraform output -raw device_thing_name   # → IOT_THING_NAME
-```
+未設定で起動した場合は AWS SDK 標準のクレデンシャルチェーン（`~/.aws` 等）にフォールバックする（ローカル開発時はこちら）。
 
 > credentials provider のエンドポイント（`xxxx.credentials.iot...`）は MQTT のデータエンドポイント（`xxxx-ats.iot...`）とは別物。証明書・鍵・CA は MQTT と同じものを使う。
 
 ## ラズパイ側の前提（実機到着後）
 
-- `sudo apt install fswebcam`
+- `sudo apt install fswebcam openssl curl`
 - 時刻同期(NTP)を有効化: `sudo timedatectl set-ntp true`（TLS / SigV4 署名が時計に依存するため必須）
-- IoT デバイス証明書一式を `IOT_CERT_FILE` / `IOT_KEY_FILE` / `IOT_CA_FILE` のパスに配置
-  - 証明書・鍵: `terraform output -raw device_certificate_pem` / `device_private_key`
-  - CA: `curl -o AmazonRootCA1.pem https://www.amazontrust.com/repository/AmazonRootCA1.pem`
-- S3 認証用に `IOT_CRED_ENDPOINT` / `IOT_ROLE_ALIAS` / `IOT_THING_NAME` を設定（上記）
+- 開発機から `ssh ika` で到達できる状態にする（ラズパイ側で sudo はパスワードなしで使える前提）
 
-## systemd で常駐させる
+## 初回セットアップ: `./bootstrap-edge.sh`（リポジトリ直下）
 
-unit ファイルは `deploy/home_device.service` に同梱。OS 起動時の自動開始・クラッシュ時の自動再起動・NTP 後の起動を行う。
+CSR ベースのデバイス証明書プロビジョニングを含む、初回フルセットアップを 1 コマンドで行う。
+
+**ポイント**: 秘密鍵 (`device.pem.key`) はラズパイ上で生成され、その後一度も外に出ない。AWS へ送るのは公開情報である CSR のみ。tfstate にも秘密鍵は入らない。
 
 ```sh
-# 1. 専用ユーザー作成（カメラアクセス用に video グループへ）
-sudo useradd --system --no-create-home --shell /usr/sbin/nologin -G video home_device
-
-# 2. バイナリ・設定・証明書を配置
-sudo install -m 0755 agent /usr/local/bin/home_device-agent
-sudo mkdir -p /etc/home_device/certs
-sudo cp .env /etc/home_device/agent.env          # edge/.env.example をもとに作成
-sudo cp device.pem.crt device.pem.key AmazonRootCA1.pem /etc/home_device/certs/
-sudo chown -R root:home_device /etc/home_device
-sudo chmod 0640 /etc/home_device/agent.env /etc/home_device/certs/*
-
-# 3. unit を登録して起動
-sudo cp deploy/home_device.service /etc/systemd/system/
-sudo systemctl daemon-reload
-sudo systemctl enable --now home_device
-
-# 4. ログ確認
-sudo journalctl -u home_device -f
+./bootstrap-edge.sh
 ```
 
-> アウトバウンド通信のみで動作（SSH ポートは非公開のまま）。`agent.env` には認証情報が入るためパーミッションは 0640・所有グループ `home_device` に限定する。
+これが順に実行されるので、初回はこの 1 コマンドで以下まで完了する:
+
+1. ラズパイに `home_device` ユーザー作成 + `/etc/home_device/certs` 準備
+2. ラズパイ上で秘密鍵生成 → CSR 作成（既存鍵があれば再利用）
+3. CSR を `terraform/device.csr` に取得
+4. Lambda ビルド + `terraform apply` で AWS が CSR を署名 → cert 発行
+5. 署名済み cert をラズパイへ配置（`/etc/home_device/certs/device.pem.crt`）
+6. Amazon Root CA をラズパイへ配置
+7. `terraform output` から `agent.env` を生成してラズパイへ配置
+8. agent バイナリを arm64 でビルドして配置
+9. systemd unit を登録 → `enable --now`
+
+冪等なので何度実行しても安全（既存鍵・既存 CA はスキップされ、cert と env は最新化される）。
+
+> CloudFront + frontend は別途 `./deploy.sh` でデプロイする。
+
+## 2回目以降の更新
+
+| 何を更新したい | コマンド |
+| --- | --- |
+| Lambda / Terraform / frontend | `./deploy.sh` |
+| エッジバイナリのみ | `./deploy-edge.sh` |
+| cert ローテーション | `./bootstrap-edge.sh`（鍵は維持、新しい CSR を投げる場合は `device.pem.key` を消してから） |

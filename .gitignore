@@ -21,6 +21,8 @@ crash.log
 # AWS / 秘密情報（絶対にコミットしない）
 *.pem
 *.key
+*.csr
+*.pem.crt
 *-certificate.pem.crt
 *-private.pem.key
 AmazonRootCA*.pem

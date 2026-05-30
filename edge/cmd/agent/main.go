@@ -28,6 +28,10 @@ import (
 // fswebcam のウォームアップと S3 アップロードがハングしても無限に待たないようにする。
 const captureTimeout = 30 * time.Second
 
+// uploadRetryDelay は PutObject 失敗時に1回だけリトライするまでの待ち時間。
+// 瞬断・スロットル等の一過性失敗を救済するのが目的なので短くて良い。
+const uploadRetryDelay = 1 * time.Second
+
 func main() {
 	cfg := config.Load()
 	log.Printf("starting agent: device=%s camera=%s bucket=%s", cfg.DeviceID, cfg.CameraType, cfg.S3Bucket)
@@ -91,11 +95,11 @@ func main() {
 
 		// 履歴と latest 双方に保存（dual write）。履歴は撮影時刻入りキー、latest は pointer。
 		historyKey := cfg.HistoryKey(time.Now())
-		if err := up.PutJPEG(runCtx, historyKey, data); err != nil {
+		if err := putWithRetry(runCtx, up, historyKey, data); err != nil {
 			log.Printf("history upload error: %v", err)
 			return
 		}
-		if err := up.PutJPEG(runCtx, cfg.LatestKey(), data); err != nil {
+		if err := putWithRetry(runCtx, up, cfg.LatestKey(), data); err != nil {
 			log.Printf("latest upload error: %v", err)
 			return
 		}
@@ -129,4 +133,21 @@ func main() {
 	signal.Notify(sig, syscall.SIGINT, syscall.SIGTERM)
 	<-sig
 	log.Println("shutting down")
+}
+
+// putWithRetry は up.PutJPEG を1回だけリトライする。
+// 瞬断・S3 のスロットル等の一過性失敗で撮影画像が失われるのを防ぐ。
+// 待機中に ctx がキャンセルされた場合は即座に抜ける。
+func putWithRetry(ctx context.Context, up *uploader.Uploader, key string, data []byte) error {
+	err := up.PutJPEG(ctx, key, data)
+	if err == nil {
+		return nil
+	}
+	log.Printf("upload %s failed, retrying once: %v", key, err)
+	select {
+	case <-ctx.Done():
+		return ctx.Err()
+	case <-time.After(uploadRetryDelay):
+	}
+	return up.PutJPEG(ctx, key, data)
 }

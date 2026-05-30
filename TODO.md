@@ -10,8 +10,8 @@ Terraform レビュー（2026-05-30）で挙がった改善点。
 - [x] **`allowed_origin` のデフォルトを `"*"` から絞る** — `terraform/frontend.tf`, `terraform/variables.tf`, `terraform/apigateway.tf`, `terraform/lambda.tf`
   CloudFront+S3 のフロント配信インフラを Terraform で構築し、CORS 許可オリジンを CloudFront ドメインに自動 wire。dev 用 localhost は `extra_allowed_origins` で追加可能。
 
-- [ ] **デバイス用 IAM ロールの trust policy に Source 条件を追加** — `terraform/iam.tf:5-14`
-  `credentials.iot.amazonaws.com` の AssumeRole trust に `aws:SourceArn = <role alias ARN>` 条件を入れて Confused Deputy 対策。個人用途では低リスクだが堅くなる。
+- [x] **デバイス用 IAM ロールの trust policy に Source 条件を追加** — `terraform/iam.tf`
+  `credentials.iot.amazonaws.com` の AssumeRole trust に `aws:SourceArn` 条件（当該 role alias ARN）を追加。role alias ARN は `local.iot_arn_prefix` から組み立てて循環依存を回避。
 
 - [x] **Lambda zip の事前ビルド依存を解消（または手順を明示）** — `deploy.sh`
   Lambda ビルド → terraform apply → frontend ビルド → S3 sync → CloudFront 無効化を順に実行する `deploy.sh` を用意。`./deploy.sh` 一発でデプロイ完結。

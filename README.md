@@ -26,12 +26,15 @@ frontend(React) →[JWT]→ API Gateway(HTTP API + Cognito authorizer)
 
 ## セットアップの流れ（雛形 → 本番）
 
-1. **インフラ構築**: `cd terraform && terraform init && terraform apply`
-   - 出力される `api_endpoint` / `user_pool_id` / `client_id` / `bucket` を控える。
-2. **Lambda デプロイ**: `cd lambda && make build` で zip を作成し、Terraform 経由で反映。
-3. **frontend 設定**: `frontend/.env` に上記 output を設定し `npm run dev` / `npm run build`。
-4. **エッジ**: ラズパイに `edge` をデプロイ、IoT デバイス証明書を配置し `CAMERA=fswebcam` で常駐起動。
-   - 開発マシンで擬似動作を試す場合は `CAMERA=mock go run ./cmd/agent` でダミー画像のパイプライン検証も可能。
+| 手順 | コマンド | 何をやるか |
+| --- | --- | --- |
+| 1. エッジ初回ブートストラップ | `./bootstrap-edge.sh` | ラズパイ側で秘密鍵生成 → CSR を AWS で署名 → cert / agent.env / unit を配置 → サービス起動。Lambda / IoT / S3 などの AWS リソースも `terraform apply` される |
+| 2. frontend / CloudFront を出す | `./deploy.sh` | Lambda zip + terraform apply（差分なし）+ frontend ビルド + S3 sync + CloudFront 無効化 |
+| 3. Cognito ユーザー作成 | `aws cognito-idp admin-create-user ...` | ログイン用ユーザーを 1 つ作る |
+
+CSR 方式により**秘密鍵はラズパイの外に出ず、tfstate にも入らない**。詳細は [edge/README.md](./edge/README.md)。
+
+開発マシンで擬似動作を試したい場合: `cd edge && CAMERA=mock go run ./cmd/agent`（ダミー画像でパイプラインのみ確認）。
 
 > 現状の準備状況: AWS アカウント / ラズパイ実機 / カメラ（Logicool C270nd）まで手配・接続済み（`fswebcam` での撮影動作も確認済み）。独自ドメインのみ未手配。AWS 側のリソース構築（terraform apply 以降）はこれから。
 

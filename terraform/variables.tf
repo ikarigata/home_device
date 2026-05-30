@@ -33,3 +33,9 @@ variable "url_ttl_seconds" {
   type        = number
   default     = 300
 }
+
+variable "device_csr_path" {
+  description = "デバイス証明書発行に使う CSR ファイルのパス。bootstrap-edge.sh がラズパイ上で生成したものを置く。"
+  type        = string
+  default     = "./device.csr"
+}

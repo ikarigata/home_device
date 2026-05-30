@@ -29,4 +29,5 @@
   - lambda image が `HeadObject` で `capturedAt` (S3 LastModified) を返すように拡張
   - frontend は撮影リクエスト後、0.5秒間隔×最大10秒のポーリングで「ボタン押下時刻より新しい capturedAt」を待つ（時計ズレ吸収のため5秒マージン）
   - 最新モードのタイムスタンプ表示も実撮影時刻に統一（履歴と表記揃え）
-- [ ] **アップロードの一過性失敗にリトライ**: 現状は1回失敗するとログのみ。
+- [x] **アップロードの一過性失敗にリトライ** — 対応済み 2026-05-30
+  - `edge/cmd/agent/main.go` に `putWithRetry` を追加。`PutJPEG` 失敗時に1秒待って1回だけ再試行（`runCtx` キャンセル時は即抜け）。history / latest 双方の PutObject 呼び出しに適用。

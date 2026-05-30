@@ -17,6 +17,11 @@ output "bucket" {
   value = aws_s3_bucket.images.id
 }
 
+output "region" {
+  description = "デプロイリージョン（agent.env の AWS_REGION）"
+  value       = var.region
+}
+
 output "frontend_bucket" {
   description = "SPA をアップロードする S3 バケット（aws s3 sync frontend/dist s3://<bucket>/）"
   value       = aws_s3_bucket.frontend.id
@@ -52,16 +57,9 @@ output "device_thing_name" {
   value       = aws_iot_thing.device.name
 }
 
-# ラズパイに配置するデバイス証明書一式（state に平文保存されるため取り扱い注意）。
-# 取り出し例: terraform output -raw device_private_key > device.pem.key
+# 署名済みデバイス証明書。秘密鍵はラズパイ側で生成・保管されるためここには無い。
 output "device_certificate_pem" {
-  description = "デバイス証明書 (.pem.crt)"
+  description = "デバイス証明書 (.pem.crt)。bootstrap-edge.sh がラズパイへ配置する。"
   value       = aws_iot_certificate.device.certificate_pem
-  sensitive   = true
-}
-
-output "device_private_key" {
-  description = "デバイス秘密鍵 (.pem.key)"
-  value       = aws_iot_certificate.device.private_key
   sensitive   = true
 }

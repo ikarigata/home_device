@@ -22,10 +22,12 @@ func (f FsWebcam) Capture(ctx context.Context) ([]byte, error) {
 	defer os.Remove(tmp.Name())
 	tmp.Close()
 
+	// -S 20: 先頭20フレームを捨てて露出・ホワイトバランスを安定させる（C270 のウォームアップ対策）
 	// --no-banner: タイムスタンプ等のバナーを焼き込まない
 	cmd := exec.CommandContext(ctx, "fswebcam",
 		"-d", f.Device,
 		"-r", f.Resolution,
+		"-S", "20",
 		"--no-banner",
 		tmp.Name(),
 	)

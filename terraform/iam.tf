@@ -2,6 +2,13 @@
 # デバイス(ラズパイ)用 IAM: S3 への最小権限
 # IoT credentials provider 経由で一時クレデンシャルを取得して使う
 #############################################
+locals {
+  device_role_alias_name = "${var.project}-device-s3"
+  device_role_alias_arn  = "${local.iot_arn_prefix}:rolealias/${local.device_role_alias_name}"
+}
+
+# Confused Deputy 対策: この role を AssumeRole できるのは
+# 当該 role alias 経由の credentials provider 呼び出しに限定する。
 data "aws_iam_policy_document" "device_assume" {
   statement {
     effect  = "Allow"
@@ -9,6 +16,11 @@ data "aws_iam_policy_document" "device_assume" {
     principals {
       type        = "Service"
       identifiers = ["credentials.iot.amazonaws.com"]
+    }
+    condition {
+      test     = "ArnEquals"
+      variable = "aws:SourceArn"
+      values   = [local.device_role_alias_arn]
     }
   }
 }
@@ -33,7 +45,7 @@ resource "aws_iam_role_policy" "device_s3" {
 }
 
 resource "aws_iot_role_alias" "device" {
-  alias    = "${var.project}-device-s3"
+  alias    = local.device_role_alias_name
   role_arn = aws_iam_role.device.arn
 }
 

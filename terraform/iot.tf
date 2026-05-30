@@ -6,10 +6,12 @@ resource "aws_iot_thing" "device" {
   name = "${var.project}-${var.device_id}"
 }
 
-# デバイス証明書（鍵ペアを生成）。private_key は state に保存されるため state の取り扱いに注意。
-# 本番運用では CSR ベースや手動発行に切り替えることを推奨。
+# デバイス証明書（CSR 署名方式）。秘密鍵はラズパイ上で生成され外に出ないため、
+# state には公開情報の cert しか入らない。
+# CSR の用意は bootstrap-edge.sh が担当する。
 resource "aws_iot_certificate" "device" {
   active = true
+  csr    = file(var.device_csr_path)
 }
 
 resource "aws_iot_thing_principal_attachment" "device" {
