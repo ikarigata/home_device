@@ -1,5 +1,6 @@
 # Go
 /edge/agent
+/edge/dist/
 /lambda/dist/
 *.test
 *.out
@@ -28,6 +29,7 @@ crash.log
 AmazonRootCA*.pem
 .env
 .env.local
+.env.production
 .aws/
 
 # OS / editor
