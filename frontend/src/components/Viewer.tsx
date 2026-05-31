@@ -53,7 +53,9 @@ export function Viewer({ onLoggedOut }: { onLoggedOut: () => void }) {
   }
 
   function showImage(img: ImageResponse) {
-    setImageUrl(`${img.url}${img.url.includes("?") ? "&" : "?"}t=${Date.now()}`);
+    // 署名付き URL は X-Amz-Date が presign 毎に変わるため URL 自体が毎回ユニーク。
+    // cache buster を足すと SigV4 署名が壊れて S3 が 403 を返すので付けない。
+    setImageUrl(img.url);
     setShownAt(img.capturedAt);
   }
 

@@ -18,13 +18,16 @@ set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$REPO_ROOT"
 
+# terraform/aws CLI 用プロファイル。dev ユーザーには IAM 作成権限がないため必須。
+export AWS_PROFILE="${AWS_PROFILE:-terraform}"
+
 step() { printf "\n\033[1;36m==> %s\033[0m\n" "$*"; }
 
 step "[1/6] Lambda zip をビルド"
 make -C lambda build
 
 step "[2/6] terraform apply"
-terraform -chdir=terraform apply
+terraform -chdir=terraform apply -auto-approve
 
 step "[3/6] terraform output から frontend 用 env を生成"
 API_ENDPOINT=$(terraform -chdir=terraform output -raw api_endpoint)

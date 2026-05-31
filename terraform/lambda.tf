@@ -26,6 +26,7 @@ resource "aws_lambda_function" "trigger" {
   runtime       = "provided.al2023"
   handler       = "bootstrap"
   architectures = ["arm64"]
+  timeout       = 15
 
   filename         = local.trigger_zip
   source_code_hash = filebase64sha256(local.trigger_zip)
@@ -47,6 +48,7 @@ resource "aws_lambda_function" "image" {
   runtime       = "provided.al2023"
   handler       = "bootstrap"
   architectures = ["arm64"]
+  timeout       = 15
 
   filename         = local.image_zip
   source_code_hash = filebase64sha256(local.image_zip)
@@ -70,6 +72,7 @@ resource "aws_lambda_function" "images" {
   runtime       = "provided.al2023"
   handler       = "bootstrap"
   architectures = ["arm64"]
+  timeout       = 15
 
   filename         = local.images_zip
   source_code_hash = filebase64sha256(local.images_zip)

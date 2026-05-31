@@ -103,13 +103,27 @@ resource "aws_iam_role_policy" "image_s3" {
   name = "s3-get-image"
   role = aws_iam_role.lambda_image.id
 
+  # ListBucket がないと未生成オブジェクトの HeadObject が 404 ではなく 403 で返る
+  # （S3 はオブジェクト存在の有無を漏らさないため）。撮影完了ポーリング中の 404 判定に必要。
   policy = jsonencode({
     Version = "2012-10-17"
-    Statement = [{
-      Effect   = "Allow"
-      Action   = "s3:GetObject"
-      Resource = "${aws_s3_bucket.images.arn}/${var.s3_key_prefix}/${var.device_id}/*"
-    }]
+    Statement = [
+      {
+        Effect   = "Allow"
+        Action   = "s3:GetObject"
+        Resource = "${aws_s3_bucket.images.arn}/${var.s3_key_prefix}/${var.device_id}/*"
+      },
+      {
+        Effect   = "Allow"
+        Action   = "s3:ListBucket"
+        Resource = aws_s3_bucket.images.arn
+        Condition = {
+          StringLike = {
+            "s3:prefix" = ["${var.s3_key_prefix}/${var.device_id}/*"]
+          }
+        }
+      },
+    ]
   })
 }
 

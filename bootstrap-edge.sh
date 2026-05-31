@@ -33,6 +33,9 @@ set -euo pipefail
 REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 cd "$REPO_ROOT"
 
+# terraform/aws CLI 用プロファイル。dev ユーザーには IAM 作成権限がないため必須。
+export AWS_PROFILE="${AWS_PROFILE:-terraform}"
+
 SSH_HOST="${SSH_HOST:-ika}"
 GOARCH="${GOARCH:-arm64}"
 GOARM="${GOARM:-}"
@@ -82,7 +85,7 @@ echo "  保存: $CSR_LOCAL"
 
 step "[4/9] Lambda zip ビルド + terraform apply"
 make -C lambda build
-terraform -chdir=terraform apply
+terraform -chdir=terraform apply -auto-approve
 
 step "[5/9] 署名済み cert をラズパイへ配置"
 terraform -chdir=terraform output -raw device_certificate_pem \
