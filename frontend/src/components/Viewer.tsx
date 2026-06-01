@@ -19,6 +19,7 @@ import {
   type ImageResponse,
 } from "../api/client";
 import { signOut } from "../auth/cognito";
+import { Lightbox } from "./Lightbox";
 
 // 撮影完了ポーリング: 0.5秒間隔 × 20回 = 最大10秒待つ。
 const POLL_INTERVAL_MS = 500;
@@ -42,6 +43,7 @@ export function Viewer({ onLoggedOut }: { onLoggedOut: () => void }) {
   const [status, setStatus] = useState<Status>({ type: "idle", message: "システム待機中" });
   const [historyItems, setHistoryItems] = useState<HistoryItem[]>([]);
   const [historyLoaded, setHistoryLoaded] = useState(false);
+  const [lightboxOpen, setLightboxOpen] = useState(false);
 
   function handleError(err: unknown, fallback: string) {
     if (err instanceof UnauthorizedError) {
@@ -213,7 +215,8 @@ export function Viewer({ onLoggedOut }: { onLoggedOut: () => void }) {
             <img
               src={imageUrl}
               alt="キッチンの調味料"
-              className="w-full h-full object-cover opacity-90 transition-opacity duration-700"
+              className="w-full h-full object-cover opacity-90 transition-opacity duration-700 cursor-zoom-in"
+              onClick={() => setLightboxOpen(true)}
               onError={() => {
                 setImageUrl(null);
                 setStatus({ type: "error", message: "画像の表示に失敗しました" });
@@ -291,6 +294,15 @@ export function Viewer({ onLoggedOut }: { onLoggedOut: () => void }) {
           />
         )}
       </div>
+
+      {lightboxOpen && imageUrl && (
+        <Lightbox
+          src={imageUrl}
+          alt="キッチンの調味料"
+          caption={shownAt ? formatTimestamp(shownAt) : null}
+          onClose={() => setLightboxOpen(false)}
+        />
+      )}
     </div>
   );
 }
